@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hireflow.backend.dto.AuthResponse;
 import com.hireflow.backend.dto.LoginRequest;
 import com.hireflow.backend.dto.RegisterRequest;
 import com.hireflow.backend.dto.UserResponse;
@@ -24,44 +25,33 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-public ResponseEntity<UserResponse> register(
-        @RequestBody RegisterRequest request) {
+    public ResponseEntity<UserResponse> register(
+            @RequestBody RegisterRequest request) {
 
-    User user = authService.register(request);
+        User user = authService.register(request);
 
-    UserResponse response = new UserResponse(
-            user.getId(),
-            user.getName(),
-            user.getEmail(),
-            user.getRole()
-    );
+        UserResponse response = new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole());
 
-    return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(response);
-}
-@PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
 
-    return authService.login(
-            request.getEmail(),
-            request.getPassword()
-        )
-        .<ResponseEntity<?>>map(user -> {
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
-            UserResponse response = new UserResponse(
-                    user.getId(),
-                    user.getName(),
-                    user.getEmail(),
-                    user.getRole()
-            );
-
-            return ResponseEntity.ok(response);
-        })
-        .orElseGet(() ->
-            ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body("Invalid email or password")
-        );
-}
+        return authService.login(
+                request.getEmail(),
+                request.getPassword())
+                .<ResponseEntity<?>>map(token ->
+                        ResponseEntity.ok(new AuthResponse(token)))
+                .orElseGet(() ->
+                        ResponseEntity
+                                .status(HttpStatus.UNAUTHORIZED)
+                                .body("Invalid email or password"));
+    }
 }

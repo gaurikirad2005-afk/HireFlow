@@ -14,13 +14,16 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public User register(RegisterRequest request) {
@@ -33,30 +36,28 @@ public class AuthService {
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-
-        user.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
-
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
 
         return userRepository.save(user);
     }
 
-    public Optional<User> login(String email, String password) {
+    public Optional<String> login(String email, String password) {
 
-    Optional<User> userOptional = userRepository.findByEmail(email);
+        Optional<User> userOptional = userRepository.findByEmail(email);
 
-    if (userOptional.isEmpty()) {
-        return Optional.empty();
+        if (userOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = userOptional.get();
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return Optional.empty();
+        }
+
+        String token = jwtService.generateToken(user);
+
+        return Optional.of(token);
     }
-
-    User user = userOptional.get();
-
-    if (!passwordEncoder.matches(password, user.getPassword())) {
-        return Optional.empty();
-    }
-
-    return Optional.of(user);
-}
 }
